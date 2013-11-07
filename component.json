@@ -1,0 +1,17 @@
+{
+    "name": "csvparser",
+    "repo": "Wizcorp/csvparser",
+    "description": "Drag 'n Drop CSV Parsing",
+    "version": "0.0.1",
+    "keywords": [ "csv" ],
+    "dependencies": {
+        "component/emitter": "*"
+    },
+    "scripts": [
+        "index.js"
+    ],
+    "styles": [
+        "styles.css"
+    ],
+    "main": "index.js"
+}
