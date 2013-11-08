@@ -136,7 +136,7 @@ CSVParser.prototype.parse = function (key, value) {
 
 	}
 
-	return true;
+	return value;
 
 };
 
