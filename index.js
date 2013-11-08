@@ -125,8 +125,19 @@ CSVParser.prototype.setUniques = function (ids) {
 };
 
 CSVParser.prototype.parse = function (key, value) {
-	var type = this.rules[key];
-	return this.tests[type].parse(value);
+
+	//Check to see if rules exists, and that there is a rule for the specified key.
+	//If not, there are no (valid) rules and should thus return true.
+
+	if (this.rules && this.rules[key]) {
+
+		var type = this.rules[key];
+		return this.tests[type].parse(value);
+
+	}
+
+	return true;
+
 };
 
 CSVParser.prototype.test = function (key, value) {
