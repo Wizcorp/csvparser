@@ -12,8 +12,9 @@ function inherits(Child, Parent) {
 	});
 }
 
-var CSVParser = function (rules) {
+var CSVParser = function (rules, options) {
 	this.rules = null;
+	this.options = options || {};
 	this.dropElement = null;
 	this.resultElement = null;
 
@@ -26,7 +27,7 @@ var CSVParser = function (rules) {
 
 	this.types = {
 		string: 'Text',
-		int:    'Number',
+		number: 'Number',
 		bool:   'Boolean'
 	};
 
@@ -39,9 +40,9 @@ var CSVParser = function (rules) {
 			test: function (value) { return !isNaN(new Date(value).getDate()); },
 			parse: function (value) { return new Date(value); }
 		},
-		int: {
-			test: function (value) { return !isNaN(value) && parseInt(value, 10).toString() === value.toString(); },
-			parse: function (value) { return parseInt(value, 10); }
+		number: {
+			test: function (value) { return !isNaN(value) && parseFloat(value).toString() === value.toString(); },
+			parse: function (value) { return parseFloat(value); }
 		},
 		string: {
 			test: function (value) { return typeof value === 'string'; },
@@ -52,7 +53,7 @@ var CSVParser = function (rules) {
 	this.createDropField();
 	this.createResultElement();
 
-	if (rules !== undefined) {
+	if (rules) {
 		this.setRules(rules);
 	}
 };
@@ -100,7 +101,6 @@ CSVParser.prototype.getRows = function (file) {
 	}
 
 	return csvRows;
-
 };
 
 CSVParser.prototype.createResultElement = function () {
@@ -109,7 +109,6 @@ CSVParser.prototype.createResultElement = function () {
 	wrapper.className = 'csvResults';
 
 	this.resultElement = wrapper;
-
 };
 
 CSVParser.prototype.addTest = function (id, test) {
@@ -117,7 +116,19 @@ CSVParser.prototype.addTest = function (id, test) {
 };
 
 CSVParser.prototype.setRules = function (rules) {
-	this.rules = rules;
+	this.rules = {};
+
+	var ruleNames = Object.keys(rules);
+	for (var i = 0, len = ruleNames.length; i < len; i++) {
+		var ruleName = ruleNames[i];
+		var rule = rules[ruleName];
+
+		if (typeof rule === "string") {
+			rule = { type: rule };
+		}
+
+		this.rules[ruleName] = rule;
+	}
 };
 
 CSVParser.prototype.setUniques = function (ids) {
@@ -130,14 +141,39 @@ CSVParser.prototype.parse = function (key, value) {
 	//If not, there are no (valid) rules and should thus return true.
 
 	if (this.rules && this.rules[key]) {
+		// empty values
+		if (value === "") {
+			// we use hasOwnProperty so that the user can use "undefined" as an empty value
+			if (this.rules[key].hasOwnProperty('empty')) {
+				return this.rules[key].empty;
+			}
 
-		var type = this.rules[key];
-		return this.tests[type].parse(value);
+			if (this.options.hasOwnProperty('empty')) {
+				return this.options.empty;
+			}
+		}
 
+		var type = this.rules[key].type;
+		value = this.tests[type].parse.call(this, value);
+
+		// apply post parsing transformation
+		if (this.rules[key].transform) {
+			value = this.rules[key].transform.call(this, key, value);
+		} else if (this.options.transform) {
+			value = this.options.transform.call(this, key, value);
+		}
+
+	} else {
+		if (this.options.hasOwnProperty('empty')) {
+			return this.options.empty;
+		}
+
+		if (this.options.transform) {
+			value = this.options.transform.call(this, key, value);
+		}
 	}
 
 	return value;
-
 };
 
 CSVParser.prototype.test = function (key, value) {
@@ -149,16 +185,16 @@ CSVParser.prototype.test = function (key, value) {
 
 	//Return true if null is allowed.
 	if (this.allowNull === true && (value === 'null' || value === null)) {
-		return null;
+		return true;
 	}
 
 	if (this.rules[key] === undefined) {
 		return false;
 	}
 
-	var type = this.rules[key];
+	var type = this.rules[key].type;
 
-	return this.tests[type].test(value) ? this.tests[type].parse(value) : false;
+	return this.tests[type].test.call(this, value);
 };
 
 CSVParser.prototype.parseCSV = function (file) {
@@ -233,22 +269,22 @@ function renderResults(that) {
 		row.className = 'resultRow';
 
 		var valueRow = that.values[j];
-
 		var uniqueId = valueRow[0];
+		var parsedRow = that.parsed[uniqueId];
+
 		uniqueIds[uniqueId] = uniqueIds.hasOwnProperty(uniqueId) ? uniqueIds[uniqueId] + 1 : 1;
 
 		for (i = 0; i < valueRow.length; i += 1) {
 			var value = document.createElement('td');
 			var classes = 'rowValue valid';
 
-
-			if (!that.test(that.headers[i], valueRow[i]) || uniqueIds[uniqueId] > 1) {
+			if (!that.test(that.headers[i], parsedRow[that.headers[i]]) || uniqueIds[uniqueId] > 1) {
 				classes = 'rowValue invalid';
 				that.isSafe = false;
 			}
 
 			value.className = classes;
-			value.textContent = valueRow[i];
+			value.textContent = parsedRow[that.headers[i]];
 
 			row.appendChild(value);
 		}
