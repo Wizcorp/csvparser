@@ -1,10 +1,4 @@
-var EventEmitter;
-
-try {
-	EventEmitter = typeof require === 'function' ? require('emitter') : EventEmitter;
-} catch (e) {
-	EventEmitter = typeof require === 'function' ? require('events').EventEmitter : EventEmitter;
-}
+var EventEmitter = require('emitter');
 
 function inherits(Child, Parent) {
 	Child.prototype = Object.create(Parent.prototype, {
@@ -13,7 +7,7 @@ function inherits(Child, Parent) {
 }
 
 var CSVParser = function (rules, options) {
-	this.rules = null;
+	this.rules = {};
 	this.options = options || {};
 	this.dropElement = null;
 	this.resultElement = null;
@@ -24,12 +18,6 @@ var CSVParser = function (rules, options) {
 
 	this.allowNull = true;
 	this.isSafe = true;
-
-	this.types = {
-		string: 'Text',
-		number: 'Number',
-		bool:   'Boolean'
-	};
 
 	this.tests = {
 		bool: {
@@ -116,11 +104,7 @@ CSVParser.prototype.addTest = function (id, test) {
 };
 
 CSVParser.prototype.setRules = function (rules) {
-	this.rules = {};
-
-	var ruleNames = Object.keys(rules);
-	for (var i = 0, len = ruleNames.length; i < len; i++) {
-		var ruleName = ruleNames[i];
+	for (var ruleName in rules) {
 		var rule = rules[ruleName];
 
 		if (typeof rule === "string") {
@@ -140,9 +124,9 @@ CSVParser.prototype.parse = function (key, value) {
 	//Check to see if rules exists, and that there is a rule for the specified key.
 	//If not, there are no (valid) rules and should thus return true.
 
-	if (this.rules && this.rules[key]) {
+	if (this.rules[key]) {
 		// empty values
-		if (value === "") {
+		if (!value.trim()) {
 			// we use hasOwnProperty so that the user can use "undefined" as an empty value
 			if (this.rules[key].hasOwnProperty('empty')) {
 				return this.rules[key].empty;
