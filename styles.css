@@ -1,5 +1,4 @@
 .dropElement {
-
     width: 50%;
     height: 60px;
     border: 3px dashed black;
@@ -8,35 +7,40 @@
     font-size: 16px;
     color: rgba(0,0,0,0.2);
     margin: 10px;
-
 }
 
 .dropElement:hover {
-
     color: rgba(0,0,0,1);
-
 }
 
 .csvResults {
-
-
-
+	overflow: auto;
 }
 
 .csvResults .resultHeader {
-
     font-weight: bold;
-
 }
 
 .csvResults .resultRow .rowValue.invalid {
-
     background-color: rgba(255, 0, 0, 0.19);
-
 }
 
 .csvResults .resultRow .rowValue.valid {
-
     background-color: rgba(0, 255, 0, 0.19);
+}
 
+.key {
+	padding-left: 10px;
+}
+
+div.key {
+	font-weight: bold;
+}
+
+.value {
+	font-weight: normal;
+}
+
+.null {
+	font-style: italic;
 }
