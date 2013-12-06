@@ -12,7 +12,7 @@ var defaultTests = {
 		parse: function (value) { return value.toLowerCase() === 'true'; }
 	},
 	date: {
-		test: function (value) { return !isNaN(new Date(value).getDate()); },
+		test: function (value) { return !isNaN(new Date(value)); },
 		parse: function (value) { return new Date(value); }
 	},
 	number: {
@@ -400,7 +400,7 @@ CSVParser.prototype.createButtons = function () {
 	cancelButton.hide();
 };
 
-function JSONHTMLify (data, target) {
+function JSONHTMLify(data, target) {
 	if (typeof data !== 'object') {
 		var elm = document.createElement('SPAN');
 		elm.textContent = data.toString();
@@ -466,6 +466,7 @@ CSVParser.prototype.createDataDisplay = function () {
 		that.loadData(function (error, newData) {
 			if (error) {
 				console.error(error);
+				newData = { error: 'Could not load data.'};
 			}
 
 			dataDisplay.update(newData);
