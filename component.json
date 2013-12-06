@@ -2,7 +2,7 @@
     "name": "csvparser",
     "repo": "Wizcorp/csvparser",
     "description": "Drag 'n Drop CSV Parsing",
-    "version": "0.0.4",
+    "version": "0.0.3",
     "keywords": [ "csv" ],
     "dependencies": {
         "component/emitter": "*"

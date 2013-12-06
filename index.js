@@ -216,6 +216,7 @@ CSVParser.prototype.parseCSV = function (file) {
 			that.values.push(row);
 		}
 
+		that.dataDisplay.hide();
 		that.parsed = parsedObject;
 		that.emit('parsed', parsedObject);
 	};
@@ -236,11 +237,11 @@ function renderResults(that) {
 
 	removeAllChildren(that.resultElement);
 
-	var header = document.createElement('tr');
+	var header = document.createElement('TR');
 	header.className = 'resultHeader';
 
 	for (var i = 0; i < that.headers.length; i += 1) {
-		var key = document.createElement('th');
+		var key = document.createElement('TH');
 		key.className = 'resultKey';
 		key.textContent = that.headers[i];
 		header.appendChild(key);
@@ -251,7 +252,7 @@ function renderResults(that) {
 	var uniqueIds = {};
 
 	for (var j = 0; j < that.values.length; j += 1) {
-		var row = document.createElement('tr');
+		var row = document.createElement('TR');
 		row.className = 'resultRow';
 
 		var valueRow = that.values[j];
@@ -261,7 +262,7 @@ function renderResults(that) {
 		uniqueIds[uniqueId] = uniqueIds.hasOwnProperty(uniqueId) ? uniqueIds[uniqueId] + 1 : 1;
 
 		for (i = 0; i < valueRow.length; i += 1) {
-			var value = document.createElement('td');
+			var value = document.createElement('TD');
 			var classes = 'rowValue valid';
 
 			if (!that.test(that.headers[i], parsedRow[that.headers[i]]) || uniqueIds[uniqueId] > 1) {
@@ -283,7 +284,7 @@ function renderResults(that) {
 
 
 CSVParser.prototype.createResultElement = function () {
-	var resultElement = this.resultElement = document.createElement('table');
+	var resultElement = this.resultElement = document.createElement('TABLE');
 	resultElement.className = 'csvResults';
 
 	resultElement.show = function () {
@@ -362,7 +363,7 @@ CSVParser.prototype.createButtons = function () {
 	var cancelButton = this.cancelButton = createButton('Cancel');
 
 	function saveClicked() {
-		if (!this.isSafe && !confirm('There were errors with your data, are you sure you want to save?')) {
+		if (!that.isSafe && !confirm('There were errors with your data, are you sure you want to save?')) {
 			return;
 		}
 
@@ -370,8 +371,15 @@ CSVParser.prototype.createButtons = function () {
 		cancelButton.hide();
 		that.resultElement.hide();
 		that.dropElement.show();
+		that.dataDisplay.show();
 
-		that.emit('save');
+		that.saveData(that.parsed, function (error) {
+			if (error) {
+				console.error(error);
+			}
+
+			that.dataDisplay.refresh();
+		});
 	}
 
 	function cancelClicked() {
@@ -379,6 +387,7 @@ CSVParser.prototype.createButtons = function () {
 		cancelButton.hide();
 		that.resultElement.hide();
 		that.dropElement.show();
+		that.dataDisplay.show();
 	}
 
 	saveButton.addEventListener('click', saveClicked, false);
@@ -391,7 +400,46 @@ CSVParser.prototype.createButtons = function () {
 	cancelButton.hide();
 };
 
+function JSONHTMLify (data, target) {
+	if (typeof data !== 'object') {
+		var elm = document.createElement('SPAN');
+		elm.textContent = data.toString();
+		elm.className = 'value';
+
+		target.appendChild(elm);
+		return;
+	}
+
+	if (data === null) {
+		var elm = document.createElement('SPAN');
+		elm.textContent = 'null'
+		elm.className = 'value null';
+
+		target.appendChild(elm);
+		return;
+	}
+
+	var keys = Object.keys(data);
+	for (var i = 0; i < keys.length; i += 1) {
+		var prop = keys[i];
+
+		var div = document.createElement('DIV');
+
+		var elm = document.createElement( target.className === 'key' ? 'SPAN' : 'H3');
+		elm.textContent = prop + (target.className === 'key' ? ': ' : '');
+
+		div.appendChild(elm);
+		div.className = 'key';
+
+		target.appendChild(div);
+
+		JSONHTMLify(data[prop], div);
+	}
+}
+
 CSVParser.prototype.createDataDisplay = function () {
+	var that = this;
+
 	var dataDisplay = this.dataDisplay = document.createElement('DIV');
 
 	var data = {};
@@ -411,46 +459,20 @@ CSVParser.prototype.createDataDisplay = function () {
 	};
 
 	dataDisplay.render = function () {
-		for (var dataId in data) {
-			var div = document.createElement('DIV');
-
-			var elm = document.createElement('H3');
-			elm.textContent = dataId;
-
-			div.appendChild(elm);
-
-			var dataObject = data[dataId];
-			for (var prop in dataObject) {
-				elm = document.createElement('SPAN');
-				elm.textContent = prop + ': ';
-
-				div.appendChild(elm);
-
-				elm = document.createElement('SPAN');
-				elm.textContent = dataObject[prop];
-
-				div.appendChild(elm);
-
-				elm = document.createElement('BR');
-
-				div.appendChild(elm);
-			}
-
-			dataDisplay.appendChild(div);
-		}
+		JSONHTMLify(data, dataDisplay);
 	};
 
-	if (this.loadData) {
-		console.log('gonna load some data');
-		this.loadData(function (error, newData) {
+	dataDisplay.refresh = function () {
+		that.loadData(function (error, newData) {
 			if (error) {
 				console.error(error);
 			}
 
-			console.log(newData);
 			dataDisplay.update(newData);
 		});
 	}
+
+	dataDisplay.refresh();
 
 	this.csvTarget.appendChild(dataDisplay);
 };
