@@ -331,11 +331,11 @@ CSVParser.prototype.createDropElement = function () {
 
 	dropElement.hide = function () {
 		dropElement.style.display = 'none';
-	}
+	};
 
 	dropElement.show = function () {
 		dropElement.style.display = '';
-	}
+	};
 
 	this.csvTarget.appendChild(dropElement);
 };
@@ -401,8 +401,10 @@ CSVParser.prototype.createButtons = function () {
 };
 
 function JSONHTMLify (data, target) {
+	var elm;
+
 	if (typeof data !== 'object') {
-		var elm = document.createElement('SPAN');
+		elm = document.createElement('SPAN');
 		elm.textContent = data.toString();
 		elm.className = 'value';
 
@@ -411,8 +413,8 @@ function JSONHTMLify (data, target) {
 	}
 
 	if (data === null) {
-		var elm = document.createElement('SPAN');
-		elm.textContent = 'null'
+		elm = document.createElement('SPAN');
+		elm.textContent = 'null';
 		elm.className = 'value null';
 
 		target.appendChild(elm);
@@ -425,7 +427,7 @@ function JSONHTMLify (data, target) {
 
 		var div = document.createElement('DIV');
 
-		var elm = document.createElement( target.className === 'key' ? 'SPAN' : 'H3');
+		elm = document.createElement( target.className === 'key' ? 'SPAN' : 'H3');
 		elm.textContent = prop + (target.className === 'key' ? ': ' : '');
 
 		div.appendChild(elm);
@@ -470,7 +472,7 @@ CSVParser.prototype.createDataDisplay = function () {
 
 			dataDisplay.update(newData);
 		});
-	}
+	};
 
 	dataDisplay.refresh();
 
