@@ -7,7 +7,7 @@ function inherits(Child, Parent) {
 }
 
 var defaultTests = {
-	bool: {
+	boolean: {
 		test: function (value) { return value.toLowerCase() === 'true' || value.toLowerCase() === 'false'; },
 		parse: function (value) { return value.toLowerCase() === 'true'; }
 	},
@@ -35,7 +35,10 @@ var CSVParser = function (config) {
 	this.values = [];
 	this.parsed = {};
 
-	this.allowNull = true;
+	this.options.allowNull = this.options.hasOwnProperty('allowNull') ? this.options.allowNull : true;
+	this.options.allowUndefined = this.options.hasOwnProperty('allowUndefined') ? this.options.allowUndefined : true;
+	this.options.empty = this.options.hasOwnProperty('empty') ? this.options.empty : undefined;
+
 	this.isSafe = true;
 
 	this.tests = defaultTests;
@@ -122,9 +125,9 @@ CSVParser.prototype.setUniques = function (ids) {
 CSVParser.prototype.parse = function (key, value) {
 
 	//Check to see if rules exists, and that there is a rule for the specified key.
-	//If not, there are no (valid) rules and should thus return true.
+	//If not, there are no (valid) rules and should just return the value.
 
-	if (this.rules[key]) {
+	if (this.rules.hasOwnProperty(key)) {
 		// empty values
 		if (!value.trim()) {
 			// we use hasOwnProperty so that the user can use "undefined" as an empty value
@@ -147,33 +150,25 @@ CSVParser.prototype.parse = function (key, value) {
 			value = this.options.transform.call(this, key, value);
 		}
 
-	} else {
-		if (this.options.hasOwnProperty('empty')) {
-			return this.options.empty;
-		}
-
-		if (this.options.transform) {
-			value = this.options.transform.call(this, key, value);
-		}
 	}
 
 	return value;
 };
 
 CSVParser.prototype.test = function (key, value) {
-
-	//Always return true if rules are not defined.
-	if (this.rules === null) {
-		return value;
+	// No rules, fail.
+	if (this.rules.hasOwnProperty(key)) {
+		return false;
 	}
 
-	//Return true if null is allowed.
-	if (this.allowNull === true && (value === 'null' || value === null)) {
+	// Return true if null is allowed.
+	if (this.options.allowNull === true && (value === 'null' || value === null)) {
 		return true;
 	}
 
-	if (this.rules[key] === undefined) {
-		return false;
+	// Return true if undefined is allowed.
+	if (this.options.allowUndefined === true && (value === 'undefined' || value === undefined)) {
+		return true;
 	}
 
 	var type = this.rules[key].type;
@@ -210,7 +205,14 @@ CSVParser.prototype.parseCSV = function (file) {
 			parsedObject[id] = {};
 
 			for (j = 0; j < row.length; j += 1) {
-				parsedObject[id][that.headers[j]] = that.parse(that.headers[j], row[j]);
+				var key = that.headers[j];
+				var value = row[j];
+
+				var parsedValue = that.parse(key, value);
+
+				if (parsedValue !== undefined) {
+					parsedObject[id][key] = parsedValue;
+				}
 			}
 
 			that.values.push(row);
@@ -262,18 +264,30 @@ function renderResults(that) {
 		uniqueIds[uniqueId] = uniqueIds.hasOwnProperty(uniqueId) ? uniqueIds[uniqueId] + 1 : 1;
 
 		for (i = 0; i < valueRow.length; i += 1) {
-			var value = document.createElement('TD');
-			var classes = 'rowValue valid';
+			var eleValue = document.createElement('TD');
+			var classes = [ 'rowValue' ];
 
-			if (!that.test(that.headers[i], parsedRow[that.headers[i]]) || uniqueIds[uniqueId] > 1) {
-				classes = 'rowValue invalid';
-				that.isSafe = false;
+			var key = that.headers[i];
+			var value = parsedRow[key]
+
+			var safe = that.test(key, value);
+			safe = safe && uniqueIds[uniqueId] === 1;
+
+			if (!that.options.hasOwnProperty('optional') || that.options.optional.indexOf(key) === -1) {
+				safe = safe && !(value === undefined || value === null);
 			}
 
-			value.className = classes;
-			value.textContent = parsedRow[that.headers[i]];
+			if (!safe) {
+				classes.push('invalid');
+				that.isSafe = false;
+			} else {
+				classes.push('valid');
+			}
 
-			row.appendChild(value);
+			eleValue.className = classes.join(' ');
+			eleValue.textContent = value === undefined ? '' : value;
+
+			row.appendChild(eleValue);
 		}
 
 		that.resultElement.appendChild(row);
