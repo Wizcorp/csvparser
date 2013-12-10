@@ -157,7 +157,7 @@ CSVParser.prototype.parse = function (key, value) {
 
 CSVParser.prototype.test = function (key, value) {
 	// No rules, fail.
-	if (this.rules.hasOwnProperty(key)) {
+	if (!this.rules.hasOwnProperty(key)) {
 		return false;
 	}
 
