@@ -7,7 +7,7 @@ function inherits(Child, Parent) {
 }
 
 var defaultTests = {
-	bool: {
+	boolean: {
 		test: function (value) { return value.toLowerCase() === 'true' || value.toLowerCase() === 'false'; },
 		parse: function (value) { return value.toLowerCase() === 'true'; }
 	},
@@ -156,16 +156,18 @@ CSVParser.prototype.parse = function (key, value) {
 };
 
 CSVParser.prototype.test = function (key, value) {
-	if (this.rules[key] === undefined) {
+	// No rules, fail.
+	if (this.rules.hasOwnProperty(key)) {
 		return false;
 	}
 
-	//Return true if null is allowed.
+	// Return true if null is allowed.
 	if (this.options.allowNull === true && (value === 'null' || value === null)) {
 		return true;
 	}
 
-	if (this.options.allowUndefined === true && value === undefined) {
+	// Return true if undefined is allowed.
+	if (this.options.allowUndefined === true && (value === 'undefined' || value === undefined)) {
 		return true;
 	}
 
