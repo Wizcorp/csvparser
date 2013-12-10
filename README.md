@@ -38,6 +38,7 @@ var myRules = {
 	birthday: 'date',
 	department: 'departmentId'
 }
+```
 
 ###tests
 
@@ -77,6 +78,7 @@ CSVParser will save your data for you when you click on the save button. If you 
 var myDataSaver = function (data, cb) {
 	dataSource.set('personnel', data, cb);
 };
+```
 
 ###target
 
