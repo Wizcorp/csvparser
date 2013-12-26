@@ -1,9 +1,23 @@
 var EventEmitter = require('emitter');
+var moment = require('moment');
 
 function inherits(Child, Parent) {
 	Child.prototype = Object.create(Parent.prototype, {
 		constructor: { value: Child, enumerable: false, writable: true, configurable: true }
 	});
+}
+
+function stringToMoment(value) {
+	var split = value.toString().split(' ');
+	return moment.duration(parseFloat(split[0], 10), split[1]);
+}
+
+function timeStringParse(value) {
+	return stringToMoment(value).asSeconds();
+}
+
+function timeStringTest(value) {
+	return stringToMoment(value).asSeconds() > 0;
 }
 
 var defaultTests = {
@@ -22,6 +36,10 @@ var defaultTests = {
 	string: {
 		test: function (value) { return typeof value === 'string'; },
 		parse: function (value) { return value; }
+	},
+	timeString: {
+		test: timeStringTest,
+		parse: timeStringParse
 	}
 };
 
@@ -314,7 +332,7 @@ CSVParser.prototype.createResultElement = function () {
 
 CSVParser.prototype.createDropElement = function () {
 	var that = this;
-	
+
 	var dropElement = this.dropElement = document.createElement('DIV');
 	dropElement.className = 'dropElement';
 	dropElement.textContent = 'Drop CSV file here';
