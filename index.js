@@ -210,13 +210,15 @@ CSVParser.prototype.parseCSV = function (file) {
 		var rows = that.getRows(file);
 		var row = rows[0];
 
-		for (var j = 0; j < row.length; j += 1) {
-			that.headers.push(row[j]);
+		var i, j;
+
+		for (i = 0; i < row.length; i += 1) {
+			that.headers.push(row[i]);
 		}
 
 		var parsedObject = {};
 
-		for (var i = 1; i < rows.length; i += 1) {
+		for (i = 1; i < rows.length; i += 1) {
 			row = rows[i];
 
 			var id = row[0];
@@ -260,7 +262,18 @@ function renderResults(that) {
 	var header = document.createElement('TR');
 	header.className = 'resultHeader';
 
-	for (var i = 0; i < that.headers.length; i += 1) {
+	var i, j;
+
+	var keys = Object.keys(that.rules);
+	for (i = 0; i < keys.length; i += 1) {
+		var key = keys[i];
+		if (that.headers.indexOf(key) === -1) {
+			that.isSafe = false;
+			that.headers.push(key);
+		}
+	}
+
+	for (i = 0; i < that.headers.length; i += 1) {
 		var key = document.createElement('TH');
 		key.className = 'resultKey';
 		key.textContent = that.headers[i];
@@ -271,21 +284,21 @@ function renderResults(that) {
 
 	var uniqueIds = {};
 
-	for (var j = 0; j < that.values.length; j += 1) {
+	for (i = 0; i < that.values.length; i += 1) {
 		var row = document.createElement('TR');
 		row.className = 'resultRow';
 
-		var valueRow = that.values[j];
+		var valueRow = that.values[i];
 		var uniqueId = valueRow[0];
 		var parsedRow = that.parsed[uniqueId];
 
 		uniqueIds[uniqueId] = uniqueIds.hasOwnProperty(uniqueId) ? uniqueIds[uniqueId] + 1 : 1;
 
-		for (i = 0; i < valueRow.length; i += 1) {
+		for (j = 0; j < that.headers.length; j += 1) {
 			var eleValue = document.createElement('TD');
 			var classes = [ 'rowValue' ];
 
-			var key = that.headers[i];
+			var key = that.headers[j];
 			var value = parsedRow[key]
 
 			var safe = that.test(key, value);
