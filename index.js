@@ -22,8 +22,8 @@ function timeStringTest(value) {
 
 var defaultTests = {
 	boolean: {
-		test: function (value) { return value.toLowerCase() === 'true' || value.toLowerCase() === 'false'; },
-		parse: function (value) { return value.toLowerCase() === 'true'; }
+		test: function (value) { return typeof value === 'boolean'; },
+		parse: function (value) { console.log('parse', typeof value); return value.toLowerCase() === 'true'; }
 	},
 	date: {
 		test: function (value) { return !isNaN(new Date(value)); },
