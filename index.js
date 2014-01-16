@@ -1,5 +1,9 @@
 var EventEmitter = require('emitter');
 var moment = require('moment');
+var nest = require('./nest');
+
+var nestSet = nest.set;
+var nestGet = nest.get;
 
 function inherits(Child, Parent) {
 	Child.prototype = Object.create(Parent.prototype, {
@@ -23,7 +27,7 @@ function timeStringTest(value) {
 var defaultTests = {
 	boolean: {
 		test: function (value) { return typeof value === 'boolean'; },
-		parse: function (value) { console.log('parse', typeof value); return value.toLowerCase() === 'true'; }
+		parse: function (value) { return value.toLowerCase() === 'true'; }
 	},
 	date: {
 		test: function (value) { return !isNaN(new Date(value)); },
@@ -56,6 +60,7 @@ var CSVParser = function (config) {
 	this.options.allowNull = this.options.hasOwnProperty('allowNull') ? this.options.allowNull : true;
 	this.options.allowUndefined = this.options.hasOwnProperty('allowUndefined') ? this.options.allowUndefined : true;
 	this.options.empty = this.options.hasOwnProperty('empty') ? this.options.empty : undefined;
+	this.options.unique = this.options.hasOwnProperty('unique') ? this.options.unique : 0;
 
 	this.isSafe = true;
 
@@ -136,10 +141,6 @@ CSVParser.prototype.setRules = function (rules) {
 	}
 };
 
-CSVParser.prototype.setUniques = function (ids) {
-	this.uniques = Array.isArray(ids) ? ids : [ ids ];
-};
-
 CSVParser.prototype.parse = function (key, value) {
 
 	//Check to see if rules exists, and that there is a rule for the specified key.
@@ -199,6 +200,7 @@ CSVParser.prototype.parseCSV = function (file) {
 	this.headers = [];
 	this.values = [];
 	this.parsed = {};
+	this.rowMap = [];
 
 	var that = this;
 
@@ -208,32 +210,51 @@ CSVParser.prototype.parseCSV = function (file) {
 		file = file.target.result;
 
 		var rows = that.getRows(file);
-		var row = rows[0];
 
-		var i, j;
+		that.headers = rows.splice(0, 1)[0];
 
-		for (i = 0; i < row.length; i += 1) {
-			that.headers.push(row[i]);
+		var unique;
+
+		if (typeof that.options.unique === 'number') {
+			unique = [ that.headers[that.options.unique] ];
+		} else if (typeof that.options.unique === 'string') {
+			unique = [ that.options.unique ];
+		} else if (Array.isArray(that.options.unique)) {
+			unique = that.options.unique;
 		}
 
 		var parsedObject = {};
 
-		for (i = 1; i < rows.length; i += 1) {
-			row = rows[i];
+		for (var i = 0; i < rows.length; i += 1) {
+			var row = rows[i];
 
-			var id = row[0];
-			parsedObject[id] = {};
+			if (unique === undefined) {
+				unique = [ i ];
+			}
 
-			for (j = 0; j < row.length; j += 1) {
+			var parsedRow = {};
+
+			for (var j = 0; j < row.length; j += 1) {
 				var key = that.headers[j];
+
 				var value = row[j];
 
 				var parsedValue = that.parse(key, value);
 
 				if (parsedValue !== undefined) {
-					parsedObject[id][key] = parsedValue;
+					parsedRow[key] = parsedValue;
 				}
 			}
+
+			var path = [];
+
+			for (var p = 0; p < unique.length; p += 1) {
+				path.push(parsedRow[unique[p]]);
+			}
+
+			that.rowMap.push(path.join('\n'));
+
+			nestSet(parsedObject, path, parsedRow);
 
 			that.values.push(row);
 		}
@@ -251,6 +272,8 @@ function removeAllChildren(ele) {
 		ele.removeChild(ele.childNodes[0]);
 	}
 }
+
+// When we render, we also test the data
 
 function renderResults(that) {
 	that.saveButton.show();
@@ -282,27 +305,41 @@ function renderResults(that) {
 
 	that.resultElement.appendChild(header);
 
-	var uniqueIds = {};
+	var unique;
+
+	if (typeof that.options.unique === 'number') {
+		unique = [ that.headers[that.options.unique] ];
+	} else if (typeof that.options.unique === 'string') {
+		unique = [ that.options.unique ];
+	} else if (Array.isArray(that.options.unique)) {
+		unique = that.options.unique;
+	}
 
 	for (i = 0; i < that.values.length; i += 1) {
 		var row = document.createElement('TR');
 		row.className = 'resultRow';
 
 		var valueRow = that.values[i];
-		var uniqueId = valueRow[0];
-		var parsedRow = that.parsed[uniqueId];
 
-		uniqueIds[uniqueId] = uniqueIds.hasOwnProperty(uniqueId) ? uniqueIds[uniqueId] + 1 : 1;
+		if (unique === undefined) {
+			unique = [ i ];
+		}
+
+		var path = that.rowMap[i].split('\n');
+
+		var parsedRow = nestGet(that.parsed, path);
 
 		for (j = 0; j < that.headers.length; j += 1) {
 			var eleValue = document.createElement('TD');
 			var classes = [ 'rowValue' ];
 
 			var key = that.headers[j];
+
 			var value = parsedRow[key]
 
 			var safe = that.test(key, value);
-			safe = safe && uniqueIds[uniqueId] === 1;
+
+			safe = safe && that.rowMap.indexOf(path.join('\n')) === i;
 
 			if (!that.options.hasOwnProperty('optional') || that.options.optional.indexOf(key) === -1) {
 				safe = safe && !(value === undefined || value === null);
@@ -363,7 +400,7 @@ CSVParser.prototype.createDropElement = function () {
 
 		if (files.length) {
 			if (files[0].type !== 'text/csv') {
-				return alert('That file is not a csv.');
+				return alert('File is not a csv.');
 			}
 
 			that.once('parsed', function () {
