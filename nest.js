@@ -9,7 +9,7 @@ function get(o, path) {
 		return o[key];
 	}
 
-	return get(o[key], path.concat().splice(0, 1));
+	return get(o[key], path.concat().splice(1, path.length - 1));
 }
 
 function set(o, path, value) {
@@ -20,7 +20,7 @@ function set(o, path, value) {
 	}
 
 	if (path.length > 1) {
-		set(o[key], path.concat().splice(0, 1), value);
+		set(o[key], path.concat().splice(1, path.length - 1), value);
 	}
 
 	return o;
