@@ -96,3 +96,4 @@ CSVParser has a few options that you can set:
 * allowUndefined: boolean, defaults to true - undefined values are acceptable in all fields.
 * empty: defaults to undefined - What you want to replace empty values with.
 * optional: array of keys - Which keys are optional, by default all keys are required.
+* unique: number, string, or array of strings. - which fields represent the unique key for a row. defaults to the first field.

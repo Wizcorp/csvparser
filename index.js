@@ -2,9 +2,6 @@ var EventEmitter = require('emitter');
 var moment = require('moment');
 var nest = require('./nest');
 
-var nestSet = nest.set;
-var nestGet = nest.get;
-
 function inherits(Child, Parent) {
 	Child.prototype = Object.create(Parent.prototype, {
 		constructor: { value: Child, enumerable: false, writable: true, configurable: true }
@@ -90,7 +87,7 @@ CSVParser.prototype.getRows = function (file) {
 	var universalNewline = /\r\n|\r|\n/g;
 	var rows = (file + '\n').split(universalNewline);
 	var csvRows = [];
-	var sep = ",";
+	var sep = ',';
 
 	for (var i = 0; i < rows.length; i += 1) {
 		if (!rows[i].length) {
@@ -133,7 +130,7 @@ CSVParser.prototype.setRules = function (rules) {
 	for (var ruleName in rules) {
 		var rule = rules[ruleName];
 
-		if (typeof rule === "string") {
+		if (typeof rule === 'string') {
 			rule = { type: rule };
 		}
 
@@ -254,7 +251,7 @@ CSVParser.prototype.parseCSV = function (file) {
 
 			that.rowMap.push(path.join('\n'));
 
-			nestSet(parsedObject, path, parsedRow);
+			nest.set(parsedObject, path, parsedRow);
 
 			that.values.push(row);
 		}
@@ -285,11 +282,11 @@ function renderResults(that) {
 	var header = document.createElement('TR');
 	header.className = 'resultHeader';
 
-	var i, j;
+	var i, j, key;
 
 	var keys = Object.keys(that.rules);
 	for (i = 0; i < keys.length; i += 1) {
-		var key = keys[i];
+		key = keys[i];
 		if (that.headers.indexOf(key) === -1) {
 			that.isSafe = false;
 			that.headers.push(key);
@@ -297,10 +294,10 @@ function renderResults(that) {
 	}
 
 	for (i = 0; i < that.headers.length; i += 1) {
-		var key = document.createElement('TH');
-		key.className = 'resultKey';
-		key.textContent = that.headers[i];
-		header.appendChild(key);
+		var th = document.createElement('TH');
+		th.className = 'resultKey';
+		th.textContent = that.headers[i];
+		header.appendChild(th);
 	}
 
 	that.resultElement.appendChild(header);
@@ -326,16 +323,15 @@ function renderResults(that) {
 		}
 
 		var path = that.rowMap[i].split('\n');
-
-		var parsedRow = nestGet(that.parsed, path);
+		var parsedRow = nest.get(that.parsed, path);
 
 		for (j = 0; j < that.headers.length; j += 1) {
 			var eleValue = document.createElement('TD');
 			var classes = [ 'rowValue' ];
 
-			var key = that.headers[j];
+			key = that.headers[j];
 
-			var value = parsedRow[key]
+			var value = parsedRow[key];
 
 			var safe = that.test(key, value);
 
@@ -413,11 +409,11 @@ CSVParser.prototype.createDropElement = function () {
 
 	dropElement.hide = function () {
 		dropElement.style.display = 'none';
-	}
+	};
 
 	dropElement.show = function () {
 		dropElement.style.display = '';
-	}
+	};
 
 	this.csvTarget.appendChild(dropElement);
 };
@@ -483,8 +479,10 @@ CSVParser.prototype.createButtons = function () {
 };
 
 function JSONHTMLify(data, target) {
+	var elm;
+
 	if (typeof data !== 'object') {
-		var elm = document.createElement('SPAN');
+		elm = document.createElement('SPAN');
 		elm.textContent = data.toString();
 		elm.className = 'value';
 
@@ -493,8 +491,8 @@ function JSONHTMLify(data, target) {
 	}
 
 	if (data === null) {
-		var elm = document.createElement('SPAN');
-		elm.textContent = 'null'
+		elm = document.createElement('SPAN');
+		elm.textContent = 'null';
 		elm.className = 'value null';
 
 		target.appendChild(elm);
@@ -507,7 +505,7 @@ function JSONHTMLify(data, target) {
 
 		var div = document.createElement('DIV');
 
-		var elm = document.createElement( target.className === 'key' ? 'SPAN' : 'H3');
+		elm = document.createElement( target.className === 'key' ? 'SPAN' : 'H3');
 		elm.textContent = prop + (target.className === 'key' ? ': ' : '');
 
 		div.appendChild(elm);
@@ -548,12 +546,13 @@ CSVParser.prototype.createDataDisplay = function () {
 		that.loadData(function (error, newData) {
 			if (error) {
 				console.error(error);
-				newData = { error: 'Could not load data.'};
 			}
+
+			newData = newData || { error: 'No data loaded.' };
 
 			dataDisplay.update(newData);
 		});
-	}
+	};
 
 	dataDisplay.refresh();
 
