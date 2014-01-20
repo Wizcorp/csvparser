@@ -49,6 +49,7 @@ var CSVParser = function (config) {
 	this.saveData = config.saveData;
 	this.csvTarget = config.target;
 	this.options = config.options || {};
+	this.render = config.render || JSONHTMLify;
 
 	this.headers = [];
 	this.values = [];
@@ -539,7 +540,7 @@ CSVParser.prototype.createDataDisplay = function () {
 	};
 
 	dataDisplay.render = function () {
-		JSONHTMLify(data, dataDisplay);
+		that.render(data, dataDisplay);
 	};
 
 	dataDisplay.refresh = function () {
