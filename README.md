@@ -19,9 +19,9 @@ var myConfig = {
 
 	target: myTarget,
 
-	render: customRender,
+	renderer: myRenderer, // optional
 
-	options: myOptions
+	options: myOptions // optional
 }
 
 var myParser = new CSVParser(myConfig);
@@ -50,8 +50,9 @@ CSVParser has a few built-in tests:
 * date
 * number
 * string
+* timeString
 
-You are free to create your own.
+You are free to create your own. It will need a test and parse function.
 
 ```javascript
 var myTests = {
@@ -84,28 +85,24 @@ var myDataSaver = function (data, cb) {
 
 ###target
 
-CSVParser needs a DOM element to stick it's data in.
+CSVParser needs a DOM element so it can appear in your page.
 
 ```javascript
 var myTarget = document.getElementById('personnelTarget');
 ```
 
-###Rendering
+###renderer
 
-CSVParser lets you the possibility to define how your data will be rendered to the screen. The function you would
-provide should have the same signature as below:
+CSVParser will use it's internal renderer unless you provide one in the config object. If you provide a function it will receive two arguments: data, target.
 
 ```javascript
-function customRender(data, target) {
-	// `data` is simply the data to render
-	// `target` is the DOM element to use for rendering. It's basically what you have provided as `target` above.
-	target.appendChild(document.appendChild(data.toString()));
+function myRenderer(data, target) {
+	// `data` is your data, parsed according to your rules.
+	// `target` is the DOM element CSVParser is using to display your data.
+
+	target.appendChild(document.createTextNode(JSON.stringify(data)));
 }
 ```
-
-This function should be given as the `render` property of the CSVParser configuration object.
-
-*This part of the configuration is optional. If you do not provide anything, a default behavior will be used*
 
 ###options
 
