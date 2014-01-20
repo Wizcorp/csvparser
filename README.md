@@ -19,6 +19,8 @@ var myConfig = {
 
 	target: myTarget,
 
+	render: customRender,
+
 	options: myOptions
 }
 
@@ -87,6 +89,23 @@ CSVParser needs a DOM element to stick it's data in.
 ```javascript
 var myTarget = document.getElementById('personnelTarget');
 ```
+
+###Rendering
+
+CSVParser lets you the possibility to define how your data will be rendered to the screen. The function you would
+provide should have the same signature as below:
+
+```javascript
+function customRender(data, target) {
+	// `data` is simply the data to render
+	// `target` is the DOM element to use for rendering. It's basically what you have provided as `target` above.
+	target.appendChild(document.appendChild(data.toString()));
+}
+```
+
+This function should be given as the `render` property of the CSVParser configuration object.
+
+*This part of the configuration is optional. If you do not provide anything, a default behavior will be used*
 
 ###options
 
