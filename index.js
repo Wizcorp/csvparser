@@ -404,10 +404,8 @@ function renderResults(that) {
 
 	// Default or custom results renderer ?
 	if (that.resultsRenderer === undefined) {
-		console.log('1');
 		defaultRenderer();
 	} else {
-		console.log('2');
 		that.resultsRenderer(that.values, that.resultElement);
 	}
 }
