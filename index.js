@@ -89,6 +89,7 @@ var CSVParser = function (config) {
 	this.csvTarget = config.target;
 	this.options = config.options || {};
 	this.renderer = config.renderer || JSONHTMLify;
+	this.resultsRenderer = config.resultsRenderer;
 
 	this.headers = [];
 	this.values = [];
@@ -319,87 +320,96 @@ function renderResults(that) {
 	that.cancelButton.show();
 	that.dropElement.hide();
 
-	removeAllChildren(that.resultElement);
+	var defaultRenderer = function () {
+		removeAllChildren(that.resultElement);
 
-	var header = document.createElement('TR');
-	header.className = 'resultHeader';
+		var header = document.createElement('TR');
+		header.className = 'resultHeader';
 
-	var i, j, key;
+		var i, j, key;
 
-	var keys = Object.keys(that.rules);
-	for (i = 0; i < keys.length; i += 1) {
-		key = keys[i];
-		if (that.headers.indexOf(key) === -1) {
-			that.isSafe = false;
-			that.headers.push(key);
-		}
-	}
-
-	for (i = 0; i < that.headers.length; i += 1) {
-		var th = document.createElement('TH');
-		th.className = 'resultKey';
-		th.textContent = that.headers[i];
-		header.appendChild(th);
-	}
-
-	that.resultElement.appendChild(header);
-
-	var unique;
-
-	if (typeof that.options.unique === 'number') {
-		unique = [ that.headers[that.options.unique] ];
-	} else if (typeof that.options.unique === 'string') {
-		unique = [ that.options.unique ];
-	} else if (Array.isArray(that.options.unique)) {
-		unique = that.options.unique;
-	}
-
-	for (i = 0; i < that.values.length; i += 1) {
-		var row = document.createElement('TR');
-		row.className = 'resultRow';
-
-		var valueRow = that.values[i];
-
-		if (unique === undefined) {
-			unique = [ i ];
-		}
-
-		var path = that.rowMap[i].split('\n');
-		var parsedRow = nest.get(that.parsed, path);
-
-		for (j = 0; j < that.headers.length; j += 1) {
-			var eleValue = document.createElement('TD');
-			var classes = [ 'rowValue' ];
-
-			key = that.headers[j];
-
-			var value = parsedRow[key];
-
-			var safe = that.test(key, value);
-
-			safe = safe && that.rowMap.indexOf(path.join('\n')) === i;
-
-			if (!that.options.hasOwnProperty('optional') || that.options.optional.indexOf(key) === -1) {
-				safe = safe && !(value === undefined || value === null);
-			}
-
-			if (!safe) {
-				classes.push('invalid');
+		var keys = Object.keys(that.rules);
+		for (i = 0; i < keys.length; i += 1) {
+			key = keys[i];
+			if (that.headers.indexOf(key) === -1) {
 				that.isSafe = false;
-			} else {
-				classes.push('valid');
+				that.headers.push(key);
 			}
-
-			eleValue.className = classes.join(' ');
-			eleValue.textContent = value === undefined ? '' : value;
-
-			row.appendChild(eleValue);
 		}
 
-		that.resultElement.appendChild(row);
-	}
+		for (i = 0; i < that.headers.length; i += 1) {
+			var th = document.createElement('TH');
+			th.className = 'resultKey';
+			th.textContent = that.headers[i];
+			header.appendChild(th);
+		}
 
-	that.resultElement.show();
+		that.resultElement.appendChild(header);
+
+		var unique;
+
+		if (typeof that.options.unique === 'number') {
+			unique = [ that.headers[that.options.unique] ];
+		} else if (typeof that.options.unique === 'string') {
+			unique = [ that.options.unique ];
+		} else if (Array.isArray(that.options.unique)) {
+			unique = that.options.unique;
+		}
+
+		for (i = 0; i < that.values.length; i += 1) {
+			var row = document.createElement('TR');
+			row.className = 'resultRow';
+
+			var valueRow = that.values[i];
+
+			if (unique === undefined) {
+				unique = [ i ];
+			}
+
+			var path = that.rowMap[i].split('\n');
+			var parsedRow = nest.get(that.parsed, path);
+
+			for (j = 0; j < that.headers.length; j += 1) {
+				var eleValue = document.createElement('TD');
+				var classes = [ 'rowValue' ];
+
+				key = that.headers[j];
+
+				var value = parsedRow[key];
+
+				var safe = that.test(key, value);
+
+				safe = safe && that.rowMap.indexOf(path.join('\n')) === i;
+
+				if (!that.options.hasOwnProperty('optional') || that.options.optional.indexOf(key) === -1) {
+					safe = safe && !(value === undefined || value === null);
+				}
+
+				if (!safe) {
+					classes.push('invalid');
+					that.isSafe = false;
+				} else {
+					classes.push('valid');
+				}
+
+				eleValue.className = classes.join(' ');
+				eleValue.textContent = value === undefined ? '' : value;
+
+				row.appendChild(eleValue);
+			}
+
+			that.resultElement.appendChild(row);
+		}
+
+		that.resultElement.show();
+	};
+
+	// Default or custom results renderer ?
+	if (that.resultsRenderer === undefined) {
+		defaultRenderer();
+	} else {
+		that.resultsRenderer(that.values, that.resultElement);
+	}
 }
 
 

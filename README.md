@@ -21,6 +21,8 @@ var myConfig = {
 
 	renderer: myRenderer, // optional
 
+	resultsRenderer: myResultsRenderer, // optional
+
 	options: myOptions // optional
 }
 
@@ -89,6 +91,22 @@ CSVParser needs a DOM element so it can appear in your page.
 
 ```javascript
 var myTarget = document.getElementById('personnelTarget');
+```
+
+###resultsRenderer
+
+CSVParser will use it's internal results renderer unless you provide one in the config object. If you provide a
+function it will receive two arguments: data, target.
+
+What is called `results` here is an array of arrays corresponding to the CSV file parsed.
+
+```javascript
+function myResultsRenderer(data, target) {
+	// `data` is your data, parsed according to your rules.
+	// `target` is the DOM element CSVParser is using to display your data.
+
+	target.appendChild(document.createTextNode(JSON.stringify(data)));
+}
 ```
 
 ###renderer
