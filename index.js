@@ -250,7 +250,7 @@ CSVParser.prototype.parseCSV = function (file) {
 
 		that.headers = rows.splice(0, 1)[0];
 
-		var unique;
+		var unique, useRowNumber;
 
 		if (typeof that.options.unique === 'number') {
 			unique = [ that.headers[that.options.unique] ];
@@ -258,16 +258,14 @@ CSVParser.prototype.parseCSV = function (file) {
 			unique = [ that.options.unique ];
 		} else if (Array.isArray(that.options.unique)) {
 			unique = that.options.unique;
+		} else {
+			useRowNumber = true;
 		}
 
 		var parsedObject = {};
 
 		for (var i = 0; i < rows.length; i += 1) {
 			var row = rows[i];
-
-			if (unique === undefined) {
-				unique = [ i ];
-			}
 
 			var parsedRow = {};
 
@@ -285,8 +283,12 @@ CSVParser.prototype.parseCSV = function (file) {
 
 			var path = [];
 
-			for (var p = 0; p < unique.length; p += 1) {
-				path.push(parsedRow[unique[p]]);
+			if (useRowNumber) {
+				path.push(i);
+			} else {
+				for (var p = 0; p < unique.length; p += 1) {
+					path.push(parsedRow[unique[p]]);
+				}
 			}
 
 			that.rowMap.push(path.join('\n'));
