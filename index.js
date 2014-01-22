@@ -124,46 +124,69 @@ var CSVParser = function (config) {
 inherits(CSVParser, EventEmitter);
 
 CSVParser.prototype.getRows = function (file) {
-	var universalNewline = /\r\n|\r|\n/g;
-	var rows = (file + '\n').split(universalNewline);
-	var csvRows = [];
-	var sep = ',';
+	// http://stackoverflow.com/questions/1293147/javascript-code-to-parse-csv-data
+	var strDelimiter = ",";
 
-	for (var i = 0; i < rows.length; i += 1) {
-		if (!rows[i].length) {
-			continue;
+	// Create a regular expression to parse the CSV values.
+	var objPattern = new RegExp(
+		(
+			// Delimiters.
+			"(\\" + strDelimiter + "|\\r?\\n|\\r|^)" +
+
+				// Quoted fields.
+				"(?:\"([^\"]*(?:\"\"[^\"]*)*)\"|" +
+
+				// Standard fields.
+				"([^\"\\" + strDelimiter + "\\r\\n]*))"
+			),
+		"gi"
+	);
+
+	// Create an array to hold our data. Give the array
+	// a default empty first row.
+	var arrData = [[]];
+
+	// Create an array to hold our individual pattern
+	// matching groups.
+	var arrMatches;
+
+	// Keep looping over the regular expression matches
+	// until we can no longer find a match.
+	while ((arrMatches = objPattern.exec(file))) {
+
+		// Get the delimiter that was found.
+		var strMatchedDelimiter = arrMatches[1];
+
+		// Check to see if the given delimiter has a length
+		// (is not the start of string) and if it matches
+		// field delimiter. If id does not, then we know
+		// that this delimiter is a row delimiter.
+		if (strMatchedDelimiter.length && (strMatchedDelimiter !== strDelimiter)) {
+			// Since we have reached a new row of data,
+			// add an empty row to our data array.
+			arrData.push([]);
 		}
 
-		for (var f = rows[i].split(sep), x = f.length - 1, tl; x >= 0; x--) {
-
-			if (f[x].replace(/"\s+$/, '"').charAt(f[x].length - 1) === '"') {
-
-				if ((tl = f[x].replace(/^\s+"/, '"')).length > 1 && tl.charAt(0) === '"') {
-
-					f[x] = f[x].replace(/^\s*"|"\s*$/g, '').replace(/""/g, '"');
-
-				} else if (x) {
-
-					f.splice(x - 1, 2, [f[x - 1], f[x]].join(sep));
-
-				} else {
-
-					f = f.shift().split(sep).concat(f);
-				}
-
-			} else {
-
-				f[x].replace(/""/g, '"');
-
-			}
-
+		// Now that we have our delimiter out of the way,
+		// let's check to see which kind of value we
+		// captured (quoted or unquoted).
+		var strMatchedValue;
+		if (arrMatches[2]) {
+			// We found a quoted value. When we capture
+			// this value, unescape any double quotes.
+			strMatchedValue = arrMatches[2].replace(new RegExp( "\"\"", "g" ), "\"");
+		} else {
+			// We found a non-quoted value.
+			strMatchedValue = arrMatches[3];
 		}
 
-		csvRows.push(f);
-
+		// Now that we have our value string, let's add
+		// it to the data array.
+		arrData[arrData.length - 1].push(strMatchedValue);
 	}
 
-	return csvRows;
+	// Return the parsed data.
+	return arrData;
 };
 
 CSVParser.prototype.setRules = function (rules) {
