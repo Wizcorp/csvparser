@@ -74,8 +74,7 @@ var defaultTests = {
 		parse: function (value) { return parseFloat(value); }
 	},
 	string: {
-		test: function (value) { return typeof value === 'string'; },
-		parse: function (value) { return value; }
+		test: function (value) { return typeof value === 'string'; }
 	},
 	timeString: {
 		test: timeStringTest,
@@ -98,6 +97,7 @@ var CSVParser = function (config) {
 	this.options.allowUndefined = this.options.hasOwnProperty('allowUndefined') ? this.options.allowUndefined : true;
 	this.options.empty = this.options.hasOwnProperty('empty') ? this.options.empty : undefined;
 	this.options.unique = this.options.hasOwnProperty('unique') ? this.options.unique : 0;
+	this.options.rotate = this.options.hasOwnProperty('rotate') ? this.options.rotate : false;
 
 	this.isSafe = true;
 
@@ -210,25 +210,20 @@ CSVParser.prototype.parse = function (key, value) {
 		// empty values
 		if (!value.trim()) {
 			// we use hasOwnProperty so that the user can use "undefined" as an empty value
-			if (this.rules[key].hasOwnProperty('empty')) {
-				return this.rules[key].empty;
-			}
-
 			if (this.options.hasOwnProperty('empty')) {
 				return this.options.empty;
 			}
 		}
 
 		var type = this.rules[key].type;
-		value = this.tests[type].parse.call(this, value);
-
-		// apply post parsing transformation
-		if (this.rules[key].transform) {
-			value = this.rules[key].transform.call(this, key, value);
-		} else if (this.options.transform) {
-			value = this.options.transform.call(this, key, value);
+		if (typeof this.tests[type].parse === 'function') {
+			value = this.tests[type].parse.call(this, value);
 		}
 
+		// apply post parsing transformation
+		if (this.options.transform) {
+			value = this.options.transform.call(this, key, value);
+		}
 	}
 
 	return value;
@@ -255,6 +250,30 @@ CSVParser.prototype.test = function (key, value) {
 	return this.tests[type].test.call(this, value);
 };
 
+function rotateTable(rows) {
+	var newRowCount = rows[0].length;
+	var newColCount = rows.length;
+
+	var out = new Array(newRowCount);
+
+	var i, j;
+
+	for (i = 0; i < newRowCount; i += 1) {
+		out[i] = new Array(newColCount);
+	}
+
+	for (i = 0; i < newColCount; i += 1) {
+		var row = rows[i];
+
+		for (j = 0; j < newRowCount; j += 1) {
+			out[j][i] = row[j];
+		}
+	}
+
+	return out;
+}
+
+
 CSVParser.prototype.parseCSV = function (file) {
 	this.isSafe = true;
 	this.headers = [];
@@ -270,6 +289,12 @@ CSVParser.prototype.parseCSV = function (file) {
 		file = file.target.result;
 
 		var rows = that.getRows(file);
+
+		var i, j;
+
+		if (that.options.rotate) {
+			rows = rotateTable(rows);
+		}
 
 		that.headers = rows.splice(0, 1)[0];
 
@@ -287,12 +312,12 @@ CSVParser.prototype.parseCSV = function (file) {
 
 		var parsedObject = {};
 
-		for (var i = 0; i < rows.length; i += 1) {
+		for (i = 0; i < rows.length; i += 1) {
 			var row = rows[i];
 
 			var parsedRow = {};
 
-			for (var j = 0; j < row.length; j += 1) {
+			for (j = 0; j < row.length; j += 1) {
 				var key = that.headers[j];
 
 				var value = row[j];
@@ -402,7 +427,7 @@ function renderResults(that) {
 
 			safe = safe && that.rowMap.indexOf(path.join('\n')) === i;
 
-			if (!that.options.hasOwnProperty('optional') || that.options.optional.indexOf(key) === -1) {
+			if (!that.options.optional || (Array.isArray(that.options.optional) && that.options.optional.indexOf(key) === -1)) {
 				safe = safe && !(value === undefined || value === null);
 			}
 
