@@ -377,7 +377,7 @@ function renderResults(that) {
 	var keys = Object.keys(that.rules);
 	for (i = 0; i < keys.length; i += 1) {
 		key = keys[i];
-		if (that.headers.indexOf(key) === -1) {
+		if (that.headers.indexOf(key) === -1 && (!that.options.optional || (Array.isArray(that.options.optional) && that.options.optional.indexOf(key) === -1))) {
 			that.isSafe = false;
 			that.headers.push(key);
 		}
