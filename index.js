@@ -1,6 +1,6 @@
 var EventEmitter = require('emitter');
 var moment = require('moment');
-var nest = require('./nest');
+var nesty = require('nesty');
 
 function inherits(Child, Parent) {
 	Child.prototype = Object.create(Parent.prototype, {
@@ -60,29 +60,29 @@ function JSONHTMLify(data, target) {
 	}
 }
 
-var defaultTests = {
-	boolean: {
-		test: function (value) { return typeof value === 'boolean'; },
-		parse: function (value) { return value.toLowerCase() === 'true'; }
-	},
-	date: {
-		test: function (value) { return !isNaN(new Date(value)); },
-		parse: function (value) { return new Date(value); }
-	},
-	number: {
-		test: function (value) { return !isNaN(value) && parseFloat(value).toString() === value.toString(); },
-		parse: function (value) { return parseFloat(value); }
-	},
-	string: {
-		test: function (value) { return typeof value === 'string'; }
-	},
-	timeString: {
-		test: timeStringTest,
-		parse: timeStringParse
-	}
-};
+function CSVParser(config) {
+	var defaultTests = {
+		boolean: {
+			test: function (value) { return typeof value === 'boolean'; },
+			parse: function (value) { return value.toLowerCase() === 'true'; }
+		},
+		date: {
+			test: function (value) { return !isNaN(new Date(value)); },
+			parse: function (value) { return new Date(value); }
+		},
+		number: {
+			test: function (value) { return !isNaN(value) && parseFloat(value).toString() === value.toString(); },
+			parse: function (value) { return parseFloat(value); }
+		},
+		string: {
+			test: function (value) { return typeof value === 'string'; }
+		},
+		timeString: {
+			test: timeStringTest,
+			parse: timeStringParse
+		}
+	};
 
-var CSVParser = function (config) {
 	this.loadData = config.loadData;
 	this.saveData = config.saveData;
 	this.csvTarget = config.target;
@@ -341,7 +341,7 @@ CSVParser.prototype.parseCSV = function (file) {
 
 			that.rowMap.push(path.join('\n'));
 
-			nest.set(parsedObject, path, parsedRow);
+			nesty.set(parsedObject, path, parsedRow);
 
 			that.values.push(row);
 		}
@@ -413,7 +413,7 @@ function renderResults(that) {
 		}
 
 		var path = that.rowMap[i].split('\n');
-		var parsedRow = nest.get(that.parsed, path);
+		var parsedRow = nesty.get(that.parsed, path);
 
 		for (j = 0; j < that.headers.length; j += 1) {
 			var eleValue = document.createElement('TD');
