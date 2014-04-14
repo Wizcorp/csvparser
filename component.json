@@ -2,12 +2,12 @@
 	"name": "csvparser",
 	"repo": "Wizcorp/csvparser",
 	"description": "Drag 'n Drop CSV Parsing",
-	"version": "0.1.14",
+	"version": "0.1.15",
 	"keywords": [ "csv" ],
 	"dependencies": {
 		"component/emitter": "1.1.1",
 		"moment/moment": "2.4.0",
-		"Wizcorp/nesty": "0.2.0"
+		"Wizcorp/nesty": "0.2.1"
 	},
 	"scripts": [
 		"index.js"
