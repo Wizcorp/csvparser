@@ -1,6 +1,6 @@
 var EventEmitter = require('emitter');
 var moment = require('moment');
-var nest = require('./nest');
+var nesty = require('nesty');
 
 function inherits(Child, Parent) {
 	Child.prototype = Object.create(Parent.prototype, {
@@ -21,34 +21,81 @@ function timeStringTest(value) {
 	return stringToMoment(value).asSeconds() > 0;
 }
 
-var defaultTests = {
-	boolean: {
-		test: function (value) { return typeof value === 'boolean'; },
-		parse: function (value) { return value.toLowerCase() === 'true'; }
-	},
-	date: {
-		test: function (value) { return !isNaN(new Date(value)); },
-		parse: function (value) { return new Date(value); }
-	},
-	number: {
-		test: function (value) { return !isNaN(value) && parseFloat(value).toString() === value.toString(); },
-		parse: function (value) { return parseFloat(value); }
-	},
-	string: {
-		test: function (value) { return typeof value === 'string'; },
-		parse: function (value) { return value; }
-	},
-	timeString: {
-		test: timeStringTest,
-		parse: timeStringParse
-	}
-};
+function JSONHTMLify(data, target) {
+	var elm;
 
-var CSVParser = function (config) {
+	if (data === undefined) {
+		return;
+	}
+
+	if (typeof data !== 'object') {
+		elm = document.createElement('SPAN');
+		elm.textContent = data.toString();
+		elm.className = 'value';
+
+		target.appendChild(elm);
+		return;
+	}
+
+	if (data === null) {
+		elm = document.createElement('SPAN');
+		elm.textContent = 'null';
+		elm.className = 'value null';
+
+		target.appendChild(elm);
+		return;
+	}
+
+	var keys = Object.keys(data);
+	for (var i = 0; i < keys.length; i += 1) {
+		var prop = keys[i];
+
+		if (data[prop] === undefined) {
+			continue;
+		}
+
+		var div = document.createElement('DIV');
+
+		elm = document.createElement( target.className === 'key' ? 'SPAN' : 'H3');
+		elm.textContent = prop + (target.className === 'key' ? ': ' : '');
+
+		div.appendChild(elm);
+		div.className = 'key';
+
+		target.appendChild(div);
+
+		JSONHTMLify(data[prop], div);
+	}
+}
+
+function CSVParser(config) {
+	var defaultTests = {
+		boolean: {
+			test: function (value) { return typeof value === 'boolean'; },
+			parse: function (value) { return value.toLowerCase() === 'true'; }
+		},
+		date: {
+			test: function (value) { return !isNaN(new Date(value)); },
+			parse: function (value) { return new Date(value); }
+		},
+		number: {
+			test: function (value) { return !isNaN(value) && parseFloat(value).toString() === value.toString(); },
+			parse: function (value) { return parseFloat(value); }
+		},
+		string: {
+			test: function (value) { return typeof value === 'string'; }
+		},
+		timeString: {
+			test: timeStringTest,
+			parse: timeStringParse
+		}
+	};
+
 	this.loadData = config.loadData;
 	this.saveData = config.saveData;
 	this.csvTarget = config.target;
 	this.options = config.options || {};
+	this.renderer = config.renderer || JSONHTMLify;
 
 	this.headers = [];
 	this.values = [];
@@ -58,6 +105,7 @@ var CSVParser = function (config) {
 	this.options.allowUndefined = this.options.hasOwnProperty('allowUndefined') ? this.options.allowUndefined : true;
 	this.options.empty = this.options.hasOwnProperty('empty') ? this.options.empty : undefined;
 	this.options.unique = this.options.hasOwnProperty('unique') ? this.options.unique : 0;
+	this.options.rotate = this.options.hasOwnProperty('rotate') ? this.options.rotate : false;
 
 	this.isSafe = true;
 
@@ -84,46 +132,69 @@ var CSVParser = function (config) {
 inherits(CSVParser, EventEmitter);
 
 CSVParser.prototype.getRows = function (file) {
-	var universalNewline = /\r\n|\r|\n/g;
-	var rows = (file + '\n').split(universalNewline);
-	var csvRows = [];
-	var sep = ',';
+	// http://stackoverflow.com/questions/1293147/javascript-code-to-parse-csv-data
+	var strDelimiter = ",";
 
-	for (var i = 0; i < rows.length; i += 1) {
-		if (!rows[i].length) {
-			continue;
+	// Create a regular expression to parse the CSV values.
+	var objPattern = new RegExp(
+		(
+			// Delimiters.
+			"(\\" + strDelimiter + "|\\r?\\n|\\r|^)" +
+
+				// Quoted fields.
+				"(?:\"([^\"]*(?:\"\"[^\"]*)*)\"|" +
+
+				// Standard fields.
+				"([^\"\\" + strDelimiter + "\\r\\n]*))"
+			),
+		"gi"
+	);
+
+	// Create an array to hold our data. Give the array
+	// a default empty first row.
+	var arrData = [[]];
+
+	// Create an array to hold our individual pattern
+	// matching groups.
+	var arrMatches;
+
+	// Keep looping over the regular expression matches
+	// until we can no longer find a match.
+	while ((arrMatches = objPattern.exec(file))) {
+
+		// Get the delimiter that was found.
+		var strMatchedDelimiter = arrMatches[1];
+
+		// Check to see if the given delimiter has a length
+		// (is not the start of string) and if it matches
+		// field delimiter. If id does not, then we know
+		// that this delimiter is a row delimiter.
+		if (strMatchedDelimiter.length && (strMatchedDelimiter !== strDelimiter)) {
+			// Since we have reached a new row of data,
+			// add an empty row to our data array.
+			arrData.push([]);
 		}
 
-		for (var f = rows[i].split(sep), x = f.length - 1, tl; x >= 0; x--) {
-
-			if (f[x].replace(/"\s+$/, '"').charAt(f[x].length - 1) === '"') {
-
-				if ((tl = f[x].replace(/^\s+"/, '"')).length > 1 && tl.charAt(0) === '"') {
-
-					f[x] = f[x].replace(/^\s*"|"\s*$/g, '').replace(/""/g, '"');
-
-				} else if (x) {
-
-					f.splice(x - 1, 2, [f[x - 1], f[x]].join(sep));
-
-				} else {
-
-					f = f.shift().split(sep).concat(f);
-				}
-
-			} else {
-
-				f[x].replace(/""/g, '"');
-
-			}
-
+		// Now that we have our delimiter out of the way,
+		// let's check to see which kind of value we
+		// captured (quoted or unquoted).
+		var strMatchedValue;
+		if (arrMatches[2]) {
+			// We found a quoted value. When we capture
+			// this value, unescape any double quotes.
+			strMatchedValue = arrMatches[2].replace(new RegExp( "\"\"", "g" ), "\"");
+		} else {
+			// We found a non-quoted value.
+			strMatchedValue = arrMatches[3];
 		}
 
-		csvRows.push(f);
-
+		// Now that we have our value string, let's add
+		// it to the data array.
+		arrData[arrData.length - 1].push(strMatchedValue);
 	}
 
-	return csvRows;
+	// Return the parsed data.
+	return arrData;
 };
 
 CSVParser.prototype.setRules = function (rules) {
@@ -147,25 +218,20 @@ CSVParser.prototype.parse = function (key, value) {
 		// empty values
 		if (!value.trim()) {
 			// we use hasOwnProperty so that the user can use "undefined" as an empty value
-			if (this.rules[key].hasOwnProperty('empty')) {
-				return this.rules[key].empty;
-			}
-
 			if (this.options.hasOwnProperty('empty')) {
 				return this.options.empty;
 			}
 		}
 
 		var type = this.rules[key].type;
-		value = this.tests[type].parse.call(this, value);
-
-		// apply post parsing transformation
-		if (this.rules[key].transform) {
-			value = this.rules[key].transform.call(this, key, value);
-		} else if (this.options.transform) {
-			value = this.options.transform.call(this, key, value);
+		if (typeof this.tests[type].parse === 'function') {
+			value = this.tests[type].parse.call(this, value);
 		}
 
+		// apply post parsing transformation
+		if (this.options.transform) {
+			value = this.options.transform.call(this, key, value);
+		}
 	}
 
 	return value;
@@ -192,6 +258,30 @@ CSVParser.prototype.test = function (key, value) {
 	return this.tests[type].test.call(this, value);
 };
 
+function rotateTable(rows) {
+	var newRowCount = rows[0].length;
+	var newColCount = rows.length;
+
+	var out = new Array(newRowCount);
+
+	var i, j;
+
+	for (i = 0; i < newRowCount; i += 1) {
+		out[i] = new Array(newColCount);
+	}
+
+	for (i = 0; i < newColCount; i += 1) {
+		var row = rows[i];
+
+		for (j = 0; j < newRowCount; j += 1) {
+			out[j][i] = row[j];
+		}
+	}
+
+	return out;
+}
+
+
 CSVParser.prototype.parseCSV = function (file) {
 	this.isSafe = true;
 	this.headers = [];
@@ -208,9 +298,15 @@ CSVParser.prototype.parseCSV = function (file) {
 
 		var rows = that.getRows(file);
 
+		var i, j;
+
+		if (that.options.rotate) {
+			rows = rotateTable(rows);
+		}
+
 		that.headers = rows.splice(0, 1)[0];
 
-		var unique;
+		var unique, useRowNumber;
 
 		if (typeof that.options.unique === 'number') {
 			unique = [ that.headers[that.options.unique] ];
@@ -218,20 +314,18 @@ CSVParser.prototype.parseCSV = function (file) {
 			unique = [ that.options.unique ];
 		} else if (Array.isArray(that.options.unique)) {
 			unique = that.options.unique;
+		} else {
+			useRowNumber = true;
 		}
 
 		var parsedObject = {};
 
-		for (var i = 0; i < rows.length; i += 1) {
+		for (i = 0; i < rows.length; i += 1) {
 			var row = rows[i];
-
-			if (unique === undefined) {
-				unique = [ i ];
-			}
 
 			var parsedRow = {};
 
-			for (var j = 0; j < row.length; j += 1) {
+			for (j = 0; j < row.length; j += 1) {
 				var key = that.headers[j];
 
 				var value = row[j];
@@ -245,13 +339,17 @@ CSVParser.prototype.parseCSV = function (file) {
 
 			var path = [];
 
-			for (var p = 0; p < unique.length; p += 1) {
-				path.push(parsedRow[unique[p]]);
+			if (useRowNumber) {
+				path.push(i);
+			} else {
+				for (var p = 0; p < unique.length; p += 1) {
+					path.push(parsedRow[unique[p]]);
+				}
 			}
 
 			that.rowMap.push(path.join('\n'));
 
-			nest.set(parsedObject, path, parsedRow);
+			nesty.set(parsedObject, path, parsedRow);
 
 			that.values.push(row);
 		}
@@ -287,7 +385,7 @@ function renderResults(that) {
 	var keys = Object.keys(that.rules);
 	for (i = 0; i < keys.length; i += 1) {
 		key = keys[i];
-		if (that.headers.indexOf(key) === -1) {
+		if (that.headers.indexOf(key) === -1 && (!that.options.optional || (Array.isArray(that.options.optional) && that.options.optional.indexOf(key) === -1))) {
 			that.isSafe = false;
 			that.headers.push(key);
 		}
@@ -323,7 +421,7 @@ function renderResults(that) {
 		}
 
 		var path = that.rowMap[i].split('\n');
-		var parsedRow = nest.get(that.parsed, path);
+		var parsedRow = nesty.get(that.parsed, path);
 
 		for (j = 0; j < that.headers.length; j += 1) {
 			var eleValue = document.createElement('TD');
@@ -337,7 +435,7 @@ function renderResults(that) {
 
 			safe = safe && that.rowMap.indexOf(path.join('\n')) === i;
 
-			if (!that.options.hasOwnProperty('optional') || that.options.optional.indexOf(key) === -1) {
+			if (!that.options.optional || (Array.isArray(that.options.optional) && that.options.optional.indexOf(key) === -1)) {
 				safe = safe && !(value === undefined || value === null);
 			}
 
@@ -478,45 +576,6 @@ CSVParser.prototype.createButtons = function () {
 	cancelButton.hide();
 };
 
-function JSONHTMLify(data, target) {
-	var elm;
-
-	if (typeof data === 'undefined' || data === null) {
-		elm = document.createElement('SPAN');
-		elm.textContent = 'null';
-		elm.className = 'value null';
-
-		target.appendChild(elm);
-		return;
-	}
-
-	if (typeof data !== 'object') {
-		elm = document.createElement('SPAN');
-		elm.textContent = data.toString();
-		elm.className = 'value';
-
-		target.appendChild(elm);
-		return;
-	}
-
-	var keys = Object.keys(data);
-	for (var i = 0; i < keys.length; i += 1) {
-		var prop = keys[i];
-
-		var div = document.createElement('DIV');
-
-		elm = document.createElement( target.className === 'key' ? 'SPAN' : 'H3');
-		elm.textContent = prop + (target.className === 'key' ? ': ' : '');
-
-		div.appendChild(elm);
-		div.className = 'key';
-
-		target.appendChild(div);
-
-		JSONHTMLify(data[prop], div);
-	}
-}
-
 CSVParser.prototype.createDataDisplay = function () {
 	var that = this;
 
@@ -532,14 +591,14 @@ CSVParser.prototype.createDataDisplay = function () {
 		dataDisplay.style.display = '';
 	};
 
+	dataDisplay.render = function () {
+		that.renderer(data, dataDisplay);
+	};
+
 	dataDisplay.update = function (newData) {
 		data = newData;
 		removeAllChildren(dataDisplay);
 		dataDisplay.render();
-	};
-
-	dataDisplay.render = function () {
-		JSONHTMLify(data, dataDisplay);
 	};
 
 	dataDisplay.refresh = function () {
