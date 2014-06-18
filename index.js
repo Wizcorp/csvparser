@@ -24,12 +24,7 @@ function timeStringTest(value) {
 function JSONHTMLify(data, target) {
 	var elm;
 
-	if (typeof data === 'undefined' || data === null) {
-		elm = document.createElement('SPAN');
-		elm.textContent = 'null';
-		elm.className = 'value null';
-
-		target.appendChild(elm);
+	if (data === undefined) {
 		return;
 	}
 
@@ -42,9 +37,22 @@ function JSONHTMLify(data, target) {
 		return;
 	}
 
+	if (data === null) {
+		elm = document.createElement('SPAN');
+		elm.textContent = 'null';
+		elm.className = 'value null';
+
+		target.appendChild(elm);
+		return;
+	}
+
 	var keys = Object.keys(data);
 	for (var i = 0; i < keys.length; i += 1) {
 		var prop = keys[i];
+
+		if (data[prop] === undefined) {
+			continue;
+		}
 
 		var div = document.createElement('DIV');
 
