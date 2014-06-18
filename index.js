@@ -24,6 +24,10 @@ function timeStringTest(value) {
 function JSONHTMLify(data, target) {
 	var elm;
 
+	if (data === undefined) {
+		return;
+	}
+
 	if (typeof data !== 'object') {
 		elm = document.createElement('SPAN');
 		elm.textContent = data.toString();
@@ -45,6 +49,10 @@ function JSONHTMLify(data, target) {
 	var keys = Object.keys(data);
 	for (var i = 0; i < keys.length; i += 1) {
 		var prop = keys[i];
+
+		if (data[prop] === undefined) {
+			continue;
+		}
 
 		var div = document.createElement('DIV');
 
