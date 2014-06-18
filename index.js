@@ -481,19 +481,19 @@ CSVParser.prototype.createButtons = function () {
 function JSONHTMLify(data, target) {
 	var elm;
 
-	if (typeof data !== 'object') {
+	if (typeof data === 'undefined' || data === null) {
 		elm = document.createElement('SPAN');
-		elm.textContent = data.toString();
-		elm.className = 'value';
+		elm.textContent = 'null';
+		elm.className = 'value null';
 
 		target.appendChild(elm);
 		return;
 	}
 
-	if (data === null) {
+	if (typeof data !== 'object') {
 		elm = document.createElement('SPAN');
-		elm.textContent = 'null';
-		elm.className = 'value null';
+		elm.textContent = data.toString();
+		elm.className = 'value';
 
 		target.appendChild(elm);
 		return;
