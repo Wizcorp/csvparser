@@ -287,6 +287,7 @@ CSVParser.prototype.parseCSV = function (file) {
 	this.headers = [];
 	this.values = [];
 	this.parsed = {};
+	this.rowKey = [];
 	this.rowMap = [];
 
 	var that = this;
@@ -347,7 +348,8 @@ CSVParser.prototype.parseCSV = function (file) {
 				}
 			}
 
-			that.rowMap.push(path);
+			that.rowKey.push(path);
+			that.rowMap.push(path.join('\n'));
 
 			nesty.set(parsedObject, path, parsedRow);
 
@@ -420,7 +422,7 @@ function renderResults(that) {
 			unique = [ i ];
 		}
 
-		var path = that.rowMap[i];
+		var path = that.rowKey[i];
 		var parsedRow = nesty.get(that.parsed, path);
 
 		for (j = 0; j < that.headers.length; j += 1) {
@@ -432,6 +434,8 @@ function renderResults(that) {
 			var value = parsedRow[key];
 
 			var safe = that.test(key, value);
+
+			safe = safe && that.rowMap.indexOf(path.join('\n')) === i;
 
 			if (!that.options.optional || (Array.isArray(that.options.optional) && that.options.optional.indexOf(key) === -1)) {
 				safe = safe && !(value === undefined || value === null);
