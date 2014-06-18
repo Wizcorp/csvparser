@@ -287,6 +287,7 @@ CSVParser.prototype.parseCSV = function (file) {
 	this.headers = [];
 	this.values = [];
 	this.parsed = {};
+	this.rowKey = [];
 	this.rowMap = [];
 
 	var that = this;
@@ -347,6 +348,7 @@ CSVParser.prototype.parseCSV = function (file) {
 				}
 			}
 
+			that.rowKey.push(path);
 			that.rowMap.push(path.join('\n'));
 
 			nesty.set(parsedObject, path, parsedRow);
@@ -420,7 +422,7 @@ function renderResults(that) {
 			unique = [ i ];
 		}
 
-		var path = that.rowMap[i].split('\n');
+		var path = that.rowKey[i];
 		var parsedRow = nesty.get(that.parsed, path);
 
 		for (j = 0; j < that.headers.length; j += 1) {
