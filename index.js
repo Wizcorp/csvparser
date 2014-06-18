@@ -347,7 +347,7 @@ CSVParser.prototype.parseCSV = function (file) {
 				}
 			}
 
-			that.rowMap.push(path.join('\n'));
+			that.rowMap.push(path);
 
 			nesty.set(parsedObject, path, parsedRow);
 
@@ -420,7 +420,7 @@ function renderResults(that) {
 			unique = [ i ];
 		}
 
-		var path = that.rowMap[i].split('\n');
+		var path = that.rowMap[i];
 		var parsedRow = nesty.get(that.parsed, path);
 
 		for (j = 0; j < that.headers.length; j += 1) {
@@ -432,8 +432,6 @@ function renderResults(that) {
 			var value = parsedRow[key];
 
 			var safe = that.test(key, value);
-
-			safe = safe && that.rowMap.indexOf(path.join('\n')) === i;
 
 			if (!that.options.optional || (Array.isArray(that.options.optional) && that.options.optional.indexOf(key) === -1)) {
 				safe = safe && !(value === undefined || value === null);
