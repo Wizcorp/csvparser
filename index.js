@@ -387,6 +387,7 @@ function renderResults(that) {
 	var keys = Object.keys(that.rules);
 	for (i = 0; i < keys.length; i += 1) {
 		key = keys[i];
+
 		if (that.headers.indexOf(key) === -1 && (!that.options.optional || (Array.isArray(that.options.optional) && that.options.optional.indexOf(key) === -1))) {
 			that.isSafe = false;
 			that.headers.push(key);
@@ -394,9 +395,15 @@ function renderResults(that) {
 	}
 
 	for (i = 0; i < that.headers.length; i += 1) {
+		key = that.headers[i];
+
+		if (that.options.ignore && that.options.ignore.indexOf(key) !== -1) {
+			continue;
+		}
+
 		var th = document.createElement('TH');
 		th.className = 'resultKey';
-		th.textContent = that.headers[i];
+		th.textContent = key;
 		header.appendChild(th);
 	}
 
@@ -426,10 +433,15 @@ function renderResults(that) {
 		var parsedRow = nesty.get(that.parsed, path);
 
 		for (j = 0; j < that.headers.length; j += 1) {
+			key = that.headers[j];
+
+			if (that.options.ignore && that.options.ignore.indexOf(key) !== -1) {
+				delete parsedRow[key];
+				continue;
+			}
+
 			var eleValue = document.createElement('TD');
 			var classes = [ 'rowValue' ];
-
-			key = that.headers[j];
 
 			var value = parsedRow[key];
 
