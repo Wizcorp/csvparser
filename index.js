@@ -370,6 +370,10 @@ function removeAllChildren(ele) {
 	}
 }
 
+function hasAsterisk(str) {
+	return str.indexOf('*') !== -1;
+}
+
 // When we render, we also test the data
 
 function renderResults(that) {
@@ -397,7 +401,7 @@ function renderResults(that) {
 	for (i = 0; i < that.headers.length; i += 1) {
 		key = that.headers[i];
 
-		if (that.options.ignore && that.options.ignore.indexOf(key) !== -1) {
+		if (hasAsterisk(key) || (that.options.ignore && that.options.ignore.indexOf(key) !== -1)) {
 			continue;
 		}
 
@@ -435,7 +439,7 @@ function renderResults(that) {
 		for (j = 0; j < that.headers.length; j += 1) {
 			key = that.headers[j];
 
-			if (that.options.ignore && that.options.ignore.indexOf(key) !== -1) {
+			if (hasAsterisk(key) || (that.options.ignore && that.options.ignore.indexOf(key) !== -1)) {
 				delete parsedRow[key];
 				continue;
 			}
