@@ -21,53 +21,6 @@ function timeStringTest(value) {
 	return stringToMoment(value).asSeconds() > 0;
 }
 
-function JSONHTMLify(data, target) {
-	var elm;
-
-	if (data === undefined) {
-		return;
-	}
-
-	if (typeof data !== 'object') {
-		elm = document.createElement('SPAN');
-		elm.textContent = data.toString();
-		elm.className = 'value';
-
-		target.appendChild(elm);
-		return;
-	}
-
-	if (data === null) {
-		elm = document.createElement('SPAN');
-		elm.textContent = 'null';
-		elm.className = 'value null';
-
-		target.appendChild(elm);
-		return;
-	}
-
-	var keys = Object.keys(data);
-	for (var i = 0; i < keys.length; i += 1) {
-		var prop = keys[i];
-
-		if (data[prop] === undefined) {
-			continue;
-		}
-
-		var div = document.createElement('DIV');
-
-		elm = document.createElement( target.className === 'key' ? 'SPAN' : 'H3');
-		elm.textContent = prop + (target.className === 'key' ? ': ' : '');
-
-		div.appendChild(elm);
-		div.className = 'key';
-
-		target.appendChild(div);
-
-		JSONHTMLify(data[prop], div);
-	}
-}
-
 function CSVParser(config) {
 	var defaultTests = {
 		boolean: {
@@ -91,11 +44,8 @@ function CSVParser(config) {
 		}
 	};
 
-	this.loadData = config.loadData;
-	this.saveData = config.saveData;
 	this.csvTarget = config.target;
 	this.options = config.options || {};
-	this.renderer = config.renderer || JSONHTMLify;
 
 	this.headers = [];
 	this.values = [];
@@ -111,10 +61,7 @@ function CSVParser(config) {
 
 	this.tests = defaultTests;
 
-	this.createButtons();
-	this.createDropElement();
 	this.createResultElement();
-	this.createDataDisplay();
 
 	this.rules = {};
 
@@ -127,7 +74,7 @@ function CSVParser(config) {
 			this.tests[id] = config.tests[id];
 		}
 	}
-};
+}
 
 inherits(CSVParser, EventEmitter);
 
@@ -281,8 +228,7 @@ function rotateTable(rows) {
 	return out;
 }
 
-
-CSVParser.prototype.parseCSV = function (file) {
+CSVParser.prototype.parseCSV = function (result) {
 	this.isSafe = true;
 	this.headers = [];
 	this.values = [];
@@ -290,78 +236,68 @@ CSVParser.prototype.parseCSV = function (file) {
 	this.rowKey = [];
 	this.rowMap = [];
 
-	var that = this;
+	var rows = this.getRows(result);
 
-	var reader = new FileReader();
+	var i, j;
 
-	reader.onload = function (file) {
-		file = file.target.result;
+	if (this.options.rotate) {
+		rows = rotateTable(rows);
+	}
 
-		var rows = that.getRows(file);
+	this.headers = rows.splice(0, 1)[0];
 
-		var i, j;
+	var unique, useRowNumber;
 
-		if (that.options.rotate) {
-			rows = rotateTable(rows);
+	if (typeof this.options.unique === 'number') {
+		unique = [ this.headers[this.options.unique] ];
+	} else if (typeof this.options.unique === 'string') {
+		unique = [ this.options.unique ];
+	} else if (Array.isArray(this.options.unique)) {
+		unique = this.options.unique;
+	} else {
+		useRowNumber = true;
+	}
+
+	var parsedObject = {};
+
+	for (i = 0; i < rows.length; i += 1) {
+		var row = rows[i];
+
+		var parsedRow = {};
+
+		for (j = 0; j < row.length; j += 1) {
+			var key = this.headers[j];
+
+			var value = row[j];
+
+			var parsedValue = this.parse(key, value);
+
+			if (parsedValue !== undefined) {
+				parsedRow[key] = parsedValue;
+			}
 		}
 
-		that.headers = rows.splice(0, 1)[0];
+		var path = [];
 
-		var unique, useRowNumber;
-
-		if (typeof that.options.unique === 'number') {
-			unique = [ that.headers[that.options.unique] ];
-		} else if (typeof that.options.unique === 'string') {
-			unique = [ that.options.unique ];
-		} else if (Array.isArray(that.options.unique)) {
-			unique = that.options.unique;
+		if (useRowNumber) {
+			path.push(i);
 		} else {
-			useRowNumber = true;
+			for (var p = 0; p < unique.length; p += 1) {
+				path.push(parsedRow[unique[p]]);
+			}
 		}
 
-		var parsedObject = {};
+		this.rowKey.push(path);
+		this.rowMap.push(path.join('\n'));
 
-		for (i = 0; i < rows.length; i += 1) {
-			var row = rows[i];
+		nesty.set(parsedObject, path, parsedRow);
 
-			var parsedRow = {};
+		this.values.push(row);
+	}
 
-			for (j = 0; j < row.length; j += 1) {
-				var key = that.headers[j];
-
-				var value = row[j];
-
-				var parsedValue = that.parse(key, value);
-
-				if (parsedValue !== undefined) {
-					parsedRow[key] = parsedValue;
-				}
-			}
-
-			var path = [];
-
-			if (useRowNumber) {
-				path.push(i);
-			} else {
-				for (var p = 0; p < unique.length; p += 1) {
-					path.push(parsedRow[unique[p]]);
-				}
-			}
-
-			that.rowKey.push(path);
-			that.rowMap.push(path.join('\n'));
-
-			nesty.set(parsedObject, path, parsedRow);
-
-			that.values.push(row);
-		}
-
-		that.dataDisplay.hide();
-		that.parsed = parsedObject;
-		that.emit('parsed', parsedObject);
-	};
-
-	reader.readAsText(file);
+	this.parsed = parsedObject;
+	this.emit('parsed', parsedObject);
+	renderResults(this);
 };
 
 function removeAllChildren(ele) {
@@ -377,10 +313,6 @@ function hasAsterisk(str) {
 // When we render, we also test the data
 
 function renderResults(that) {
-	that.saveButton.show();
-	that.cancelButton.show();
-	that.dropElement.hide();
-
 	removeAllChildren(that.resultElement);
 
 	var header = document.createElement('TR');
@@ -490,150 +422,6 @@ CSVParser.prototype.createResultElement = function () {
 	};
 
 	this.csvTarget.appendChild(resultElement);
-};
-
-CSVParser.prototype.createDropElement = function () {
-	var that = this;
-
-	var dropElement = this.dropElement = document.createElement('DIV');
-	dropElement.className = 'dropElement';
-	dropElement.textContent = 'Drop CSV file here';
-
-	dropElement.addEventListener('dragover', function (e) {
-		e.stopPropagation();
-		e.preventDefault();
-	});
-
-	dropElement.addEventListener('drop', function (e) {
-		var files = e.dataTransfer.files;
-
-		e.stopPropagation();
-		e.preventDefault();
-
-		if (files.length) {
-			if (files[0].type !== 'text/csv') {
-				return alert('File is not a csv.');
-			}
-
-			that.once('parsed', function () {
-				renderResults(that);
-			});
-
-			that.parseCSV(files[0]);
-		}
-	}, false);
-
-	dropElement.hide = function () {
-		dropElement.style.display = 'none';
-	};
-
-	dropElement.show = function () {
-		dropElement.style.display = '';
-	};
-
-	this.csvTarget.appendChild(dropElement);
-};
-
-function createButton(value) {
-	var button = document.createElement('INPUT');
-	button.type = 'button';
-	button.value = value;
-
-	button.show = function () {
-		button.style.display = '';
-	};
-
-	button.hide = function () {
-		button.style.display = 'none';
-	};
-
-	return button;
-}
-
-CSVParser.prototype.createButtons = function () {
-	var that = this;
-
-	var saveButton = this.saveButton = createButton('Save');
-	var cancelButton = this.cancelButton = createButton('Cancel');
-
-	function saveClicked() {
-		if (!that.isSafe && !confirm('There were errors with your data, are you sure you want to save?')) {
-			return;
-		}
-
-		saveButton.hide();
-		cancelButton.hide();
-		that.resultElement.hide();
-		that.dropElement.show();
-		that.dataDisplay.show();
-
-		that.saveData(that.parsed, function (error) {
-			if (error) {
-				console.error(error);
-			}
-
-			that.dataDisplay.refresh();
-		});
-	}
-
-	function cancelClicked() {
-		saveButton.hide();
-		cancelButton.hide();
-		that.resultElement.hide();
-		that.dropElement.show();
-		that.dataDisplay.show();
-	}
-
-	saveButton.addEventListener('click', saveClicked, false);
-	cancelButton.addEventListener('click', cancelClicked, false);
-
-	this.csvTarget.appendChild(saveButton);
-	this.csvTarget.appendChild(cancelButton);
-
-	saveButton.hide();
-	cancelButton.hide();
-};
-
-CSVParser.prototype.createDataDisplay = function () {
-	var that = this;
-
-	var dataDisplay = this.dataDisplay = document.createElement('DIV');
-
-	var data = {};
-
-	dataDisplay.hide = function () {
-		dataDisplay.style.display = 'none';
-	};
-
-	dataDisplay.show = function () {
-		dataDisplay.style.display = '';
-	};
-
-	dataDisplay.render = function () {
-		that.renderer(data, dataDisplay);
-	};
-
-	dataDisplay.update = function (newData) {
-		data = newData;
-		removeAllChildren(dataDisplay);
-		dataDisplay.render();
-	};
-
-	dataDisplay.refresh = function () {
-		that.loadData(function (error, newData) {
-			if (error) {
-				console.error(error);
-			}
-
-			newData = newData || { error: 'No data loaded.' };
-
-			dataDisplay.update(newData);
-		});
-	};
-
-	dataDisplay.refresh();
-
-	this.csvTarget.appendChild(dataDisplay);
 };
 
 module.exports = CSVParser;
