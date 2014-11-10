@@ -78,7 +78,7 @@ function CSVParser(config) {
 
 inherits(CSVParser, EventEmitter);
 
-CSVParser.prototype.getRows = function (file) {
+CSVParser.prototype.getRows = function (csvData) {
 	// http://stackoverflow.com/questions/1293147/javascript-code-to-parse-csv-data
 	var strDelimiter = ",";
 
@@ -107,7 +107,7 @@ CSVParser.prototype.getRows = function (file) {
 
 	// Keep looping over the regular expression matches
 	// until we can no longer find a match.
-	while ((arrMatches = objPattern.exec(file))) {
+	while ((arrMatches = objPattern.exec(csvData))) {
 
 		// Get the delimiter that was found.
 		var strMatchedDelimiter = arrMatches[1];
@@ -228,7 +228,7 @@ function rotateTable(rows) {
 	return out;
 }
 
-CSVParser.prototype.parseCSV = function (result) {
+CSVParser.prototype.parseCSV = function (csvData) {
 	this.isSafe = true;
 	this.headers = [];
 	this.values = [];
@@ -236,7 +236,7 @@ CSVParser.prototype.parseCSV = function (result) {
 	this.rowKey = [];
 	this.rowMap = [];
 
-	var rows = this.getRows(result);
+	var rows = this.getRows(csvData);
 
 	var i, j;
 
