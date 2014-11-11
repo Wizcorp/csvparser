@@ -14,13 +14,6 @@ var myConfig = {
 	rules: myRules,
 	tests: myTests,
 
-	loadData: myDataLoader,
-	saveData: myDataSaver,
-
-	target: myTarget,
-
-	renderer: myRenderer, // optional
-
 	options: myOptions // optional
 }
 
@@ -63,47 +56,6 @@ var myTests = {
 }
 ```
 
-###loadData
-
-CSVParser wants to display the data you already have, give it a function to call that returns data in a callback.
-
-```javascript
-var myDataLoader = function (cb) {
-	dataSource.get('personnel', cb);
-};
-```
-
-###saveData
-
-CSVParser will save your data for you when you click on the save button. If you want to transform the data before you save it, you can do it inside the saveData function.
-
-```javascript
-var myDataSaver = function (data, cb) {
-	dataSource.set('personnel', data, cb);
-};
-```
-
-###target
-
-CSVParser needs a DOM element so it can appear in your page.
-
-```javascript
-var myTarget = document.getElementById('personnelTarget');
-```
-
-###renderer
-
-CSVParser will use it's internal renderer unless you provide one in the config object. If you provide a function it will receive two arguments: data, target.
-
-```javascript
-function myRenderer(data, target) {
-	// `data` is your data, parsed according to your rules.
-	// `target` is the DOM element CSVParser is using to display your data.
-
-	target.appendChild(document.createTextNode(JSON.stringify(data)));
-}
-```
-
 ###options
 
 CSVParser has a few options that you can set:
@@ -112,4 +64,5 @@ CSVParser has a few options that you can set:
 * allowUndefined: boolean, defaults to true - undefined values are acceptable in all fields.
 * empty: defaults to undefined - What you want to replace empty values with.
 * optional: array of keys - Which keys are optional, by default all keys are required.
+* rotate: boolean, defaults to false - treats rows as columns and columns as rows.
 * unique: number, string, or array of strings. - which fields represent the unique key for a row. defaults to the first field.

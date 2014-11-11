@@ -22,6 +22,8 @@ function timeStringTest(value) {
 }
 
 function CSVParser(config) {
+	EventEmitter.call(this);
+
 	var defaultTests = {
 		boolean: {
 			test: function (value) { return typeof value === 'boolean'; },
