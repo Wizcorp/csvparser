@@ -13,7 +13,7 @@ var CSVParser = require('csvparser');
 var myConfig = {
 	rules: myRules,
 	tests: myTests,
-
+	target: myTarget, // optional
 	options: myOptions // optional
 }
 
@@ -54,6 +54,14 @@ var myTests = {
 		parse: function (value) { return value; }
 	}
 }
+```
+
+###target
+
+CSVParser will create a table to show the result of validation of the parsed data. Provide a DOM element so it can appear in your page.
+
+```javascript
+var myTarget = document.getElementById('personnelTarget');
 ```
 
 ###options

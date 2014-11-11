@@ -423,7 +423,9 @@ CSVParser.prototype.createResultElement = function () {
 		resultElement.style.display = 'none';
 	};
 
-	this.csvTarget.appendChild(resultElement);
+	if (this.csvTarget) {
+		this.csvTarget.appendChild(resultElement);
+	}
 };
 
 module.exports = CSVParser;
