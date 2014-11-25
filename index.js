@@ -31,7 +31,7 @@ function CSVParser(config) {
 		},
 		date: {
 			test: function (value) { return !isNaN(new Date(value)); },
-			parse: function (value) { return new Date(value); }
+			parse: function (value) { return Math.floor(Date.parse(value) / 1000); }
 		},
 		number: {
 			test: function (value) { return !isNaN(value) && parseFloat(value).toString() === value.toString(); },

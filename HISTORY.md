@@ -1,5 +1,8 @@
 #History
 
+## vNEXT
+* Changes default date parse to parse to unix timestamp
+
 ##v0.2.2
 * Update dependency component/emitter from v1.1.1 to v1.1.3
 * Update dependency moment/moment from v2.4.0 to v2.8.3
