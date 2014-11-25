@@ -1,4 +1,4 @@
-csvparser
+CSVParser
 =========
 
 Drag 'n drop CSV parser
